@@ -1,0 +1,12 @@
+import { jobRecords } from "../content/jobs";
+import { JobApplicationForm, PageHero } from "./PageParts";
+import { SiteShell } from "./SiteShell";
+
+export type JobSlug = keyof typeof jobRecords;
+
+export function JobPage({ slug }: { slug: JobSlug }) {
+  const job = jobRecords[slug];
+  return <SiteShell><main id="main-content"><PageHero title={job.title} eyebrow="Position title"/><section className="section job-detail"><div className="container job-detail-grid"><article className="job-content"><p className="eyebrow">Description</p><div className="job-description" dangerouslySetInnerHTML={{__html:job.descriptionHtml}}/>{job.qualifications&&<><h2>Qualifications</h2><p>{job.qualifications}</p></>}</article><aside className="job-facts"><h2>Position details</h2><dl><div><dt>Hiring organization</dt><dd>Welcome to Grevitywings</dd></div><div><dt>Employment Type</dt><dd>{job.employmentType.replaceAll("_","-").toLowerCase()}</dd></div><div><dt>Industry</dt><dd>{job.industry}</dd></div><div><dt>Job Location</dt><dd>{job.location}</dd></div><div><dt>Working Hours</dt><dd>{job.workHours}</dd></div><div><dt>Date posted</dt><dd>{new Date(job.datePosted).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</dd></div></dl></aside></div></section><section className="section apply-section"><div className="container"><div className="apply-heading"><p className="eyebrow eyebrow-light">Apply now</p><h2>Position: {job.title}</h2></div><JobApplicationForm position={job.title} action={job.action}/><p className="form-note">Thank you for submitting your application. We will contact you shortly!</p></div></section></main></SiteShell>;
+}
+
+export function LegacyJobPage() { return <SiteShell><main id="main-content"><PageHero title="Ground operations executive – fresher" eyebrow="Job"/><section className="section job-detail"><div className="container job-detail-grid"><article className="job-content"><h2>Grevitywings</h2><p>Kolkata</p><p>Posted 6 years ago</p><h2>Job Features</h2><dl><div><dt>Job Category</dt><dd>IT</dd></div><div><dt>Required Experience, Skills and Qualifications</dt><dd>12th pass/graduates are eligible to apply</dd></div></dl></article><aside className="job-facts"><h2>Apply For This Job</h2><JobApplicationForm position="Ground operations executive – fresher" action="/index.php/jobs/ground-operations-executive-fresher/"/></aside></div></section></main></SiteShell>; }
