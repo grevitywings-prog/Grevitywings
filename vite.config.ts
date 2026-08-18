@@ -33,15 +33,26 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= "false";
   process.env.WRANGLER_LOG_PATH ??= ".wrangler/logs";
   process.env.MINIFLARE_REGISTRY_PATH ??= ".wrangler/registry";
 
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
-  const { cloudflare } = await import("@cloudflare/vite-plugin");
+  // Vinext uses Nitro for non-Cloudflare deployment targets. Keep the native
+  // Cloudflare plugin for local development and explicit Cloudflare builds,
+  // but do not load both deployment adapters in the same production build.
+  const isNitroBuild =
+    command === "build" &&
+    (process.env.NITRO_PRESET === "vercel" || Boolean(process.env.VERCEL));
+
+  const deploymentPlugin = isNitroBuild
+    ? (await import("nitro/vite")).nitro()
+    : (await import("@cloudflare/vite-plugin")).cloudflare({
+        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+        config: localBindingConfig,
+      });
 
   return {
     server: isCodexSeatbeltSandbox
@@ -50,10 +61,7 @@ export default defineConfig(async () => {
     plugins: [
       vinext(),
       sites(),
-      cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-        config: localBindingConfig,
-      }),
+      deploymentPlugin,
     ],
   };
 });
