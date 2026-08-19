@@ -61,6 +61,26 @@ test("preserves canonical redirects", async () => {
   assert.equal(response.headers.get("location"), "/index.php/about-2");
 });
 
+test("renders the public portal authentication screens", async () => {
+  const login = await render("/portal/login");
+  assert.equal(login.status, 200);
+  assert.match(await login.text(), /Client Delivery Portal/);
+
+  const forgot = await render("/portal/forgot-password");
+  assert.equal(forgot.status, 200);
+  assert.match(await forgot.text(), /Reset your password/);
+});
+
+test("redirects unauthenticated portal and admin pages", async () => {
+  const portal = await render("/portal");
+  assert.ok([307, 308].includes(portal.status));
+  assert.match(portal.headers.get("location") || "", /\/portal\/login/);
+
+  const admin = await render("/admin/client-delivery");
+  assert.ok([307, 308].includes(admin.status));
+  assert.match(admin.headers.get("location") || "", /\/portal\/login/);
+});
+
 test("preserves contact and job form destinations", async () => {
   const contactHtml = await (await render("/index.php/contact-2")).text();
   assert.match(

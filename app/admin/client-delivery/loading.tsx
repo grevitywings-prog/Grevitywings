@@ -1,0 +1,1 @@
+export default function AdminLoading() { return <main className="portal-loading"><div className="portal-skeleton portal-skeleton-title"/><div className="portal-skeleton-grid">{Array.from({length:3},(_,index)=><div className="portal-skeleton portal-skeleton-card" key={index}/>)}</div><div className="portal-skeleton portal-skeleton-table"/></main>; }
