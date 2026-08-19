@@ -21,7 +21,12 @@ export async function POST(request: NextRequest) {
     await admin.auth.admin.deleteUser(created.user.id);
     return NextResponse.json({ error: "Client account could not be created." }, { status: 500 });
   }
-  await writeAudit({ client_account_id: account.id, auth_user_id: auth.context.user.id, action: "admin_client_created", file_id: null, delivery_id: null, metadata: {} });
+  const { data: owner, error: memberError } = await admin.from("client_account_members").insert({ client_account_id: account.id, auth_user_id: created.user.id, display_name: body.contactName.trim(), email, role: "owner", status: "active", accepted_at: new Date().toISOString(), invited_by_auth_user_id: auth.context.user.id }).select("id").single();
+  if (memberError || !owner) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return NextResponse.json({ error: "Client workspace owner could not be created." }, { status: 500 });
+  }
+  await writeAudit({ client_account_id: account.id, member_id: owner.id, auth_user_id: auth.context.user.id, action: "admin_client_created", file_id: null, delivery_id: null, metadata: {} });
   return auth.context.applyCookies(NextResponse.json({ id: account.id }, { status: 201 }));
 }
 

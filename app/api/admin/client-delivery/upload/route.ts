@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   if (!delivery) return NextResponse.json({ error: "Delivery not found." }, { status: 404 });
   if (delivery.client_account_id !== clientId) return NextResponse.json({ error: "Delivery does not belong to the selected client." }, { status: 403 });
   if (delivery.archived_at) return NextResponse.json({ error: "Archived deliveries cannot accept uploads." }, { status: 410 });
+  const { data: folder } = await admin.from("client_folders").select("id").eq("delivery_id", deliveryId).maybeSingle();
 
   const outcomes = await Promise.all(files.map(async file => {
     const validation = validateUpload(file);
@@ -30,12 +31,12 @@ export async function POST(request: NextRequest) {
     const storagePath = `clients/${clientId}/${deliveryId}/${crypto.randomUUID()}-${filename}`;
     const { error: uploadError } = await admin.storage.from(PORTAL_BUCKET).upload(storagePath, file, { contentType: file.type || "application/octet-stream", upsert: false, cacheControl: "private, max-age=0" });
     if (uploadError) return { filename: file.name, ok: false, error: "Storage upload failed." };
-    const { data: record, error: metadataError } = await admin.from("client_delivery_files").insert({ delivery_id: deliveryId, client_account_id: clientId, storage_path: storagePath, filename: file.name, mime_type: file.type || "application/octet-stream", file_size: file.size }).select("id").single();
+    const { data: record, error: metadataError } = await admin.from("client_delivery_files").insert({ delivery_id: deliveryId, folder_id: folder?.id || null, client_account_id: clientId, storage_path: storagePath, filename: file.name, mime_type: file.type || "application/octet-stream", file_size: file.size }).select("id").single();
     if (metadataError || !record) {
       await admin.storage.from(PORTAL_BUCKET).remove([storagePath]);
       return { filename: file.name, ok: false, error: "File metadata could not be saved." };
     }
-    await writeAudit({ client_account_id: clientId, auth_user_id: auth.context.user.id, action: "admin_upload", file_id: record.id, delivery_id: deliveryId, metadata: { filename: file.name, file_size: file.size } });
+    await writeAudit({ client_account_id: clientId, folder_id: folder?.id || null, auth_user_id: auth.context.user.id, action: "admin_upload", file_id: record.id, delivery_id: deliveryId, metadata: { filename: file.name, file_size: file.size } });
     return { filename: file.name, ok: true, id: record.id };
   }));
   const failed = outcomes.filter(result => !result.ok).length;

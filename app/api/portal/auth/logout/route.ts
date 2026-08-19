@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
   const { supabase, applyCookies } = createRouteSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    const { data: client } = await supabase.from("client_accounts").select("id").eq("auth_user_id", user.id).maybeSingle();
-    if (client) await writeAudit({ client_account_id: client.id, auth_user_id: user.id, action: "client_logout", file_id: null, delivery_id: null, metadata: {} });
+    const { data: member } = await supabase.from("client_account_members").select("id, client_account_id").eq("auth_user_id", user.id).maybeSingle();
+    if (member) await writeAudit({ client_account_id: member.client_account_id, member_id: member.id, auth_user_id: user.id, action: "client_logout", file_id: null, delivery_id: null, metadata: {} });
   }
   await supabase.auth.signOut();
   return applyCookies(NextResponse.json({ redirectTo: "/portal/login" }));

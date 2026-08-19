@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { createAdminSupabase, createServerSupabase } from "./supabase";
 import { hasSupabaseEnvironment } from "./config";
-import type { AuditLog, ClientAccount } from "./types";
+import type { AuditLog, ClientAccount, ClientMember } from "./types";
 
 export type ClientAuthContext = {
   user: { id: string; email?: string };
   account: ClientAccount;
+  member: ClientMember;
 };
 
 export async function getClientAuthContext(): Promise<
@@ -16,14 +17,21 @@ export async function getClientAuthContext(): Promise<
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, reason: "unauthenticated" };
+  const { data: member } = await supabase
+    .from("client_account_members")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle<ClientMember>();
+  if (!member) return { ok: false, reason: "forbidden" };
+  if (member.status !== "active") return { ok: false, reason: member.status === "disabled" ? "disabled" : "forbidden" };
   const { data: account } = await supabase
     .from("client_accounts")
     .select("*")
-    .eq("auth_user_id", user.id)
+    .eq("id", member.client_account_id)
     .maybeSingle<ClientAccount>();
   if (!account) return { ok: false, reason: "forbidden" };
   if (account.status !== "active") return { ok: false, reason: "disabled" };
-  return { ok: true, context: { user: { id: user.id, email: user.email }, account } };
+  return { ok: true, context: { user: { id: user.id, email: user.email }, account, member } };
 }
 
 export async function requireClientPage() {

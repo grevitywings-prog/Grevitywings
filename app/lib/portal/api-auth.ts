@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSupabaseEnvironment } from "./config";
 import { createRouteSupabase } from "./supabase";
-import type { ClientAccount } from "./types";
+import type { ClientAccount, ClientMember } from "./types";
 
 export type ClientApiContext = {
   user: { id: string; email?: string };
   account: ClientAccount;
+  member: ClientMember;
   supabase: ReturnType<typeof createRouteSupabase>["supabase"];
   applyCookies: ReturnType<typeof createRouteSupabase>["applyCookies"];
 };
@@ -20,15 +21,19 @@ export async function requireClientApi(request: NextRequest): Promise<
   const { supabase, applyCookies } = createRouteSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, response: applyCookies(NextResponse.json({ error: "Authentication required." }, { status: 401 })) };
-  const { data: account } = await supabase
-    .from("client_accounts")
+  const { data: member } = await supabase
+    .from("client_account_members")
     .select("*")
     .eq("auth_user_id", user.id)
-    .maybeSingle<ClientAccount>();
+    .maybeSingle<ClientMember>();
+  if (!member || member.status !== "active") {
+    return { ok: false, response: applyCookies(NextResponse.json({ error: "Client access is not available." }, { status: 403 })) };
+  }
+  const { data: account } = await supabase.from("client_accounts").select("*").eq("id", member.client_account_id).maybeSingle<ClientAccount>();
   if (!account || account.status !== "active") {
     return { ok: false, response: applyCookies(NextResponse.json({ error: "Client access is not available." }, { status: 403 })) };
   }
-  return { ok: true, context: { user: { id: user.id, email: user.email }, account, supabase, applyCookies } };
+  return { ok: true, context: { user: { id: user.id, email: user.email }, account, member, supabase, applyCookies } };
 }
 
 export async function requireAdminApi(request: NextRequest) {

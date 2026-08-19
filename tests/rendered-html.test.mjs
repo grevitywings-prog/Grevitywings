@@ -72,9 +72,11 @@ test("renders the public portal authentication screens", async () => {
 });
 
 test("redirects unauthenticated portal and admin pages", async () => {
-  const portal = await render("/portal");
-  assert.ok([307, 308].includes(portal.status));
-  assert.match(portal.headers.get("location") || "", /\/portal\/login/);
+  for (const path of ["/portal", "/portal/folders", "/portal/team"]) {
+    const portal = await render(path);
+    assert.ok([307, 308].includes(portal.status));
+    assert.match(portal.headers.get("location") || "", /\/portal\/login/);
+  }
 
   const admin = await render("/admin/client-delivery");
   assert.ok([307, 308].includes(admin.status));

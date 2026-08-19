@@ -15,8 +15,8 @@ async function mutate(url: string, method: string, body?: unknown) {
 export function CreateClientForm() {
   const [state, setState] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setState("Creating…"); const form = new FormData(event.currentTarget);
-    try { await mutate("/api/admin/client-delivery/clients", "POST", { companyName: form.get("companyName"), contactName: form.get("contactName"), email: form.get("email"), temporaryPassword: form.get("temporaryPassword") }); setState("Client created securely."); event.currentTarget.reset(); setTimeout(() => window.location.reload(), 500); }
+    event.preventDefault(); setState("Creating…"); const formElement = event.currentTarget; const form = new FormData(formElement);
+    try { await mutate("/api/admin/client-delivery/clients", "POST", { companyName: form.get("companyName"), contactName: form.get("contactName"), email: form.get("email"), temporaryPassword: form.get("temporaryPassword") }); setState("Client created securely."); formElement.reset(); setTimeout(() => window.location.reload(), 500); }
     catch (error) { setState(error instanceof Error ? error.message : "Client creation failed."); }
   }
   return <form className="portal-admin-form" onSubmit={submit}><label>Company name<input name="companyName" required /></label><label>Contact name<input name="contactName" required /></label><label>Email<input name="email" type="email" required /></label><label>Temporary password<input name="temporaryPassword" type="password" minLength={12} required /></label><button className="portal-primary-button" type="submit">Create client</button>{state && <p role="status">{state}</p>}</form>;
@@ -25,8 +25,8 @@ export function CreateClientForm() {
 export function CreateDeliveryForm({ clients }: { clients: ClientOption[] }) {
   const [state, setState] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setState("Creating…"); const form = new FormData(event.currentTarget);
-    try { await mutate("/api/admin/client-delivery/deliveries", "POST", { clientId: form.get("clientId"), title: form.get("title"), campaign: form.get("campaign"), description: form.get("description"), deliveredAt: form.get("deliveredAt") || undefined }); setState("Delivery created."); event.currentTarget.reset(); setTimeout(() => window.location.reload(), 500); }
+    event.preventDefault(); setState("Creating…"); const formElement = event.currentTarget; const form = new FormData(formElement);
+    try { await mutate("/api/admin/client-delivery/deliveries", "POST", { clientId: form.get("clientId"), title: form.get("title"), campaign: form.get("campaign"), description: form.get("description"), deliveredAt: form.get("deliveredAt") || undefined }); setState("Delivery created."); formElement.reset(); setTimeout(() => window.location.reload(), 500); }
     catch (error) { setState(error instanceof Error ? error.message : "Delivery creation failed."); }
   }
   return <form className="portal-admin-form" onSubmit={submit}><label>Client<select name="clientId" required defaultValue=""><option value="" disabled>Select client</option>{clients.map(client=><option value={client.id} key={client.id}>{client.company_name}</option>)}</select></label><label>Delivery title<input name="title" required placeholder="Life Insurance"/></label><label>Campaign<input name="campaign" required placeholder="Life Insurance"/></label><label>Delivery date<input name="deliveredAt" type="datetime-local"/></label><label className="portal-admin-wide">Description<textarea name="description" rows={3}/></label><button className="portal-primary-button" type="submit">Create delivery</button>{state && <p role="status">{state}</p>}</form>;

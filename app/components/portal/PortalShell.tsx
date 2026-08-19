@@ -8,7 +8,7 @@ export function PortalShell({ children, clientName, companyName, admin = false }
   const [loggingOut, setLoggingOut] = useState(false);
   const nav = admin
     ? [["/admin/client-delivery", "Delivery administration"]]
-    : [["/portal", "Dashboard"], ["/portal/files", "All files"]];
+    : [["/portal", "Dashboard"], ["/portal/folders", "Folders"], ["/portal/files", "All files"], ["/portal/team", "Team"]];
   async function logout() {
     setLoggingOut(true);
     await fetch("/api/portal/auth/logout", { method: "POST" });
@@ -16,8 +16,8 @@ export function PortalShell({ children, clientName, companyName, admin = false }
   }
   return <div className="portal-app">
     <aside className="portal-sidebar">
-      <a className="portal-brand" href={admin ? "/admin/client-delivery" : "/portal"}><img src="/grevitywings-logo.png" alt="Grevitywings" /><span>{admin ? "Delivery Admin" : "Client Delivery"}</span></a>
-      <nav aria-label={admin ? "Administration" : "Client portal"}>{nav.map(([href,label])=><a key={href} className={pathname === href ? "active" : ""} href={href}><span aria-hidden="true">{href.endsWith("files") ? "▤" : "◫"}</span>{label}</a>)}</nav>
+      <a className="portal-brand" href={admin ? "/admin/client-delivery" : "/portal"}><span className="portal-brand-surface"><img src="/grevitywings-logo.png" alt="Grevitywings" /></span><span className="portal-brand-label">{admin ? "Delivery Admin" : "Client Workspace"}</span></a>
+      <nav aria-label={admin ? "Administration" : "Client portal"}>{nav.map(([href,label])=><a key={href} className={pathname === href || (href !== "/portal" && pathname.startsWith(`${href}/`)) ? "active" : ""} href={href}><span aria-hidden="true">{href.endsWith("files") ? "▤" : href.endsWith("folders") ? "▰" : href.endsWith("team") ? "◎" : "◫"}</span>{label}</a>)}</nav>
       <div className="portal-security-note"><span aria-hidden="true">◈</span><div><strong>Secure workspace</strong><small>Private, account-scoped delivery access</small></div></div>
     </aside>
     <div className="portal-main">

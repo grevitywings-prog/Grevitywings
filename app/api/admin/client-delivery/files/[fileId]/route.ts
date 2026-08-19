@@ -17,6 +17,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (storageError) return NextResponse.json({ error: "File could not be removed safely." }, { status: 500 });
   const { error } = await admin.from("client_delivery_files").delete().eq("id", file.id);
   if (error) return NextResponse.json({ error: "File metadata could not be deleted." }, { status: 500 });
-  await writeAudit({ client_account_id: file.client_account_id, auth_user_id: auth.context.user.id, action: "admin_file_deleted", file_id: null, delivery_id: file.delivery_id, metadata: { filename: file.filename } });
+  await writeAudit({ client_account_id: file.client_account_id, folder_id: file.folder_id, auth_user_id: auth.context.user.id, action: "admin_file_deleted", file_id: null, delivery_id: file.delivery_id, metadata: { filename: file.filename } });
   return auth.context.applyCookies(NextResponse.json({ ok: true }));
 }

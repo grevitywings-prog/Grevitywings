@@ -8,6 +8,7 @@ import { decideResourceAccess } from "../../../../../lib/portal/security";
 import { createAdminSupabase } from "../../../../../lib/portal/supabase";
 import type { ClientDelivery, DeliveryFile } from "../../../../../lib/portal/types";
 import { contentDispositionFilename, safeFilename } from "../../../../../lib/portal/utils";
+import { getFolderAccess } from "../../../../../lib/portal/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: delivery } = await admin.from("client_deliveries").select("*").eq("id", deliveryId).maybeSingle<ClientDelivery>();
   const decision = decideResourceAccess({ authenticated: true, accountExists: true, accountStatus: auth.context.account.status, resourceExists: Boolean(delivery), resourceClientId: delivery?.client_account_id, clientAccountId: auth.context.account.id, revoked: Boolean(delivery?.archived_at) });
   if (!decision.allowed) return NextResponse.json({ error: decision.status === 404 ? "Delivery not found." : decision.status === 410 ? "Delivery is no longer available." : "Delivery access denied." }, { status: decision.status });
+  const { data: folder } = await admin.from("client_folders").select("id").eq("delivery_id", deliveryId).maybeSingle();
+  if (!folder || !(await getFolderAccess(folder.id, auth.context.member))) return NextResponse.json({ error: "Delivery not found." }, { status: 404 });
   const { data } = await admin.from("client_delivery_files").select("*").eq("delivery_id", deliveryId).eq("client_account_id", auth.context.account.id).is("revoked_at", null).order("created_at");
   const files = (data || []) as DeliveryFile[];
   if (!files.length) return NextResponse.json({ error: "No downloadable files were found." }, { status: 404 });
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const upstreams = await Promise.all(signed.map(item => item.signedUrl ? fetch(item.signedUrl, { cache: "no-store" }) : null));
   if (upstreams.some(response => !response?.ok || !response.body)) return NextResponse.json({ error: "One or more delivery files are missing." }, { status: 404 });
 
-  const archive = new ZipArchive({ zlib: { level: 6 } });
+  const archive = new ZipArchive({ zlib: { level: 1 } });
   const used = new Map<string, number>();
   files.forEach((file, index) => {
     const clean = safeFilename(file.filename);
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     archive.append(Readable.fromWeb(upstreams[index]!.body! as never), { name });
   });
   void archive.finalize();
-  await writeAudit({ client_account_id: auth.context.account.id, auth_user_id: auth.context.user.id, action: "bulk_download", file_id: null, delivery_id: delivery!.id, metadata: { file_count: files.length } });
+  await writeAudit({ client_account_id: auth.context.account.id, member_id: auth.context.member.id, folder_id: folder.id, auth_user_id: auth.context.user.id, action: "bulk_download", file_id: null, delivery_id: delivery!.id, metadata: { file_count: files.length } });
   const zipName = `${safeFilename(delivery!.title)}-${delivery!.id.slice(0, 8)}.zip`;
   return new Response(Readable.toWeb(archive) as ReadableStream, { headers: { "content-type": "application/zip", "content-disposition": `attachment; ${contentDispositionFilename(zipName)}`, "cache-control": "private, no-store, max-age=0", "x-content-type-options": "nosniff" } });
 }

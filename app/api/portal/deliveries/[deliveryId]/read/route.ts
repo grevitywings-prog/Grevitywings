@@ -4,6 +4,7 @@ import { writeAudit } from "../../../../../lib/portal/auth";
 import { createAdminSupabase } from "../../../../../lib/portal/supabase";
 import type { ClientDelivery } from "../../../../../lib/portal/types";
 import { isSameOrigin } from "../../../../../lib/portal/utils";
+import { getFolderAccess } from "../../../../../lib/portal/workspace";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ deliveryId: string }> }) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
@@ -15,9 +16,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!delivery) return NextResponse.json({ error: "Delivery not found." }, { status: 404 });
   if (delivery.client_account_id !== auth.context.account.id) return NextResponse.json({ error: "Delivery access denied." }, { status: 403 });
   if (delivery.archived_at) return NextResponse.json({ error: "Delivery is no longer available." }, { status: 410 });
+  const { data: folder } = await admin.from("client_folders").select("id").eq("delivery_id", delivery.id).maybeSingle();
+  if (!folder || !(await getFolderAccess(folder.id, auth.context.member))) return NextResponse.json({ error: "Delivery not found." }, { status: 404 });
   if (!delivery.read_at) {
     await admin.from("client_deliveries").update({ read_at: new Date().toISOString() }).eq("id", delivery.id).eq("client_account_id", auth.context.account.id);
-    await writeAudit({ client_account_id: auth.context.account.id, auth_user_id: auth.context.user.id, action: "delivery_read", file_id: null, delivery_id: delivery.id, metadata: {} });
+    await writeAudit({ client_account_id: auth.context.account.id, member_id: auth.context.member.id, folder_id: folder.id, auth_user_id: auth.context.user.id, action: "delivery_read", file_id: null, delivery_id: delivery.id, metadata: {} });
   }
   return auth.context.applyCookies(NextResponse.json({ ok: true }));
 }

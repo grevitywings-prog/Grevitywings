@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   if (!client) return NextResponse.json({ error: "Client not found." }, { status: 404 });
   const { data: delivery, error } = await admin.from("client_deliveries").insert({ client_account_id: body.clientId, title: body.title.trim(), campaign: body.campaign.trim(), description: body.description?.trim() || null, delivered_at: body.deliveredAt || new Date().toISOString(), notification_status: "not_sent" }).select("id").single();
   if (error || !delivery) return NextResponse.json({ error: "Delivery could not be created." }, { status: 500 });
-  await writeAudit({ client_account_id: body.clientId, auth_user_id: auth.context.user.id, action: "admin_delivery_created", file_id: null, delivery_id: delivery.id, metadata: {} });
+  const { data: folder } = await admin.from("client_folders").select("id").eq("delivery_id", delivery.id).maybeSingle();
+  await writeAudit({ client_account_id: body.clientId, folder_id: folder?.id || null, auth_user_id: auth.context.user.id, action: "admin_delivery_created", file_id: null, delivery_id: delivery.id, metadata: {} });
   return auth.context.applyCookies(NextResponse.json({ id: delivery.id }, { status: 201 }));
 }

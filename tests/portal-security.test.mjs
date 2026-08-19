@@ -26,6 +26,7 @@ test("enforces tenant ownership for individual and bulk downloads", () => {
 
 test("private storage and database migrations enforce RLS", async () => {
   const database = await readFile(new URL("../supabase/migrations/202608190001_client_delivery_portal.sql", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../supabase/migrations/202608200003_client_workspaces.sql", import.meta.url), "utf8");
   const storage = await readFile(new URL("../supabase/migrations/202608190002_private_delivery_storage.sql", import.meta.url), "utf8");
   for (const table of ["client_accounts", "client_deliveries", "client_delivery_files", "client_portal_audit_logs"]) {
     assert.match(database, new RegExp(`alter table public\\.${table} enable row level security`, "i"));
@@ -33,6 +34,13 @@ test("private storage and database migrations enforce RLS", async () => {
   assert.match(storage, /values \(\s*'client-deliveries',\s*'client-deliveries',\s*false/i);
   assert.match(storage, /storage\.objects/i);
   assert.match(storage, /bucket_id = 'client-deliveries'/i);
+  for (const table of ["client_account_members", "client_folders", "client_folder_members"]) {
+    assert.match(workspace, new RegExp(`alter table public\\.${table} enable row level security`, "i"));
+  }
+  assert.match(workspace, /can_access_client_folder/i);
+  assert.match(workspace, /can_contribute_client_folder/i);
+  assert.match(workspace, /insert into public\.client_account_members/i);
+  assert.match(workspace, /insert into public\.client_folders/i);
 });
 
 test("upload and password-reset contracts are present without public registration", async () => {
@@ -50,14 +58,29 @@ test("upload and password-reset contracts are present without public registratio
   assert.doesNotMatch([upload, passwordReset, ...authFiles].join("\n"), /signUp\s*\(/);
 });
 
-test("download routes use short-lived server-created URLs and never redirect clients", async () => {
-  for (const path of [
-    "../app/api/portal/files/[fileId]/download/route.ts",
-    "../app/api/portal/deliveries/[deliveryId]/download/route.ts",
-  ]) {
-    const source = await readFile(new URL(path, import.meta.url), "utf8");
+test("download routes use short-lived authorised URLs and streamed folder archives", async () => {
+  const individual = await readFile(new URL("../app/api/portal/files/[fileId]/download/route.ts", import.meta.url), "utf8");
+  const folder = await readFile(new URL("../app/api/portal/folders/[folderId]/download/route.ts", import.meta.url), "utf8");
+  const delivery = await readFile(new URL("../app/api/portal/deliveries/[deliveryId]/download/route.ts", import.meta.url), "utf8");
+  assert.match(individual, /SIGNED_URL_TTL_SECONDS/);
+  assert.match(individual, /getFolderAccess/);
+  assert.match(individual, /NextResponse\.redirect\(signed\.signedUrl, 307\)/);
+  for (const source of [folder, delivery]) {
     assert.match(source, /SIGNED_URL_TTL_SECONDS/);
-    assert.match(source, /fetch\(/);
-    assert.doesNotMatch(source, /NextResponse\.redirect\(.*signed/i);
+    assert.match(source, /getFolderAccess/);
+    assert.match(source, /Readable\.toWeb\(archive\)/);
+    assert.match(source, /level: 1/);
   }
+});
+
+test("team invitations are invitation-only and roles are tenant scoped", async () => {
+  const team = await readFile(new URL("../app/api/portal/team/route.ts", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../app/lib/portal/workspace.ts", import.meta.url), "utf8");
+  assert.match(team, /inviteUserByEmail/);
+  assert.doesNotMatch(team, /signUp\s*\(/);
+  assert.match(team, /client_account_id/);
+  assert.match(workspace, /owner/);
+  assert.match(workspace, /manager/);
+  assert.match(workspace, /contributor/);
+  assert.match(workspace, /viewer/);
 });
