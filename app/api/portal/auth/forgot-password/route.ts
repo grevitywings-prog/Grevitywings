@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasSupabaseEnvironment } from "../../../../lib/portal/config";
 import { createRouteSupabase } from "../../../../lib/portal/supabase";
 import { isSameOrigin } from "../../../../lib/portal/utils";
+import { getPortalUrl } from "../../../../lib/portal/site-url";
 
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
@@ -10,7 +11,8 @@ export async function POST(request: NextRequest) {
   const email = body?.email?.trim().toLowerCase();
   if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
   const { supabase, applyCookies } = createRouteSupabase(request);
-  const origin = new URL(request.url).origin;
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/portal/auth/callback?next=/portal/reset-password` });
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: getPortalUrl("/portal/auth/callback?next=/portal/reset-password"),
+  });
   return applyCookies(NextResponse.json({ message: "If the account exists, password reset instructions have been sent." }));
 }

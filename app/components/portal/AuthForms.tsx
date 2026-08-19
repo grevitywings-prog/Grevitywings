@@ -82,3 +82,28 @@ export function ResetPasswordForm() {
     <button className="portal-primary-button" type="submit" disabled={pending}>{pending ? "Updating…" : "Update password"}</button>
   </form>;
 }
+
+export function InvitePasswordForm({ tokenHash }: { tokenHash: string }) {
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setPending(true); setMessage("");
+    const form = new FormData(event.currentTarget);
+    const password = String(form.get("password") || "");
+    const confirmPassword = String(form.get("confirm") || "");
+    if (password !== confirmPassword) { setMessage("Passwords do not match."); setPending(false); return; }
+    try {
+      const result = await postJson("/api/portal/auth/accept-invite", { tokenHash, password, confirmPassword });
+      window.location.assign(result.redirectTo);
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "Invitation setup failed."); setPending(false);
+    }
+  }
+  return <form className="portal-auth-form" onSubmit={submit}>
+    <label>New password<input name="password" type="password" minLength={12} maxLength={128} autoComplete="new-password" required /></label>
+    <label>Confirm password<input name="confirm" type="password" minLength={12} maxLength={128} autoComplete="new-password" required /></label>
+    <p className="portal-help">Use between 12 and 128 characters.</p>
+    {message && <p className="portal-form-alert" role="alert">{message}</p>}
+    <button className="portal-primary-button" type="submit" disabled={pending}>{pending ? "Activating secure access…" : "Create password and enter workspace"}</button>
+  </form>;
+}

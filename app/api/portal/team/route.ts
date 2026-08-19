@@ -5,6 +5,7 @@ import { createAdminSupabase } from "../../../lib/portal/supabase";
 import type { ClientMember, ClientMemberRole } from "../../../lib/portal/types";
 import { isSameOrigin } from "../../../lib/portal/utils";
 import { canInviteRole, canManageTeam } from "../../../lib/portal/workspace";
+import { getPortalUrl } from "../../../lib/portal/site-url";
 
 const inviteRoles: ClientMemberRole[] = ["manager", "contributor", "viewer"];
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       : "This email is already assigned to another workspace.";
     return auth.context.applyCookies(NextResponse.json({ error: message }, { status: 409 }));
   }
-  const redirectTo = `${new URL(request.url).origin}/portal/auth/callback?next=/portal/reset-password`;
+  const redirectTo = getPortalUrl("/portal/invite");
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo, data: { display_name: displayName } });
   if (inviteError || !invited.user) {
     return auth.context.applyCookies(NextResponse.json({ error: "The invitation could not be sent. Confirm Supabase email delivery is configured and try again." }, { status: 400 }));
