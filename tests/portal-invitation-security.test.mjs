@@ -115,6 +115,6 @@ test("hosted invitation template uses Supabase one-time variables", async () => 
 
 test("hosted recovery template uses one-time Supabase variables", async () => {
   const template = await readFile(new URL("../supabase/templates/recovery.html", import.meta.url), "utf8");
-  assert.match(template, /\{\{ \.RedirectTo \}\}\?token_hash=\{\{ \.TokenHash \}\}/);
+  assert.match(template, /\{\{ \.RedirectTo \}\}\?token_hash=\{\{ \.TokenHash \}\}&amp;type=recovery/);
   assert.doesNotMatch(template, /localhost|127\.0\.0\.1/);
 });
