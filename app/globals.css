@@ -93,6 +93,7 @@
 .portal-member-controls{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}
 .portal-member-controls select{min-height:36px;padding:7px 9px;font-size:11px}
 .portal-member-controls .portal-secondary-button{min-height:36px;padding:7px 10px;font-size:10px}
+.portal-member-controls .portal-secondary-button+button{grid-column:1/-1}
 .portal-member-controls small{grid-column:1/-1;color:#9f1239}
 .portal-folder-sharing{display:grid;gap:16px}
 .portal-scope-toggle{display:flex;width:max-content;padding:4px;border-radius:11px;background:#eef2f7}

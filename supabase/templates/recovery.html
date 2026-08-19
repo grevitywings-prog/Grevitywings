@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<body style="margin:0;background:#f4f6fa;font-family:Arial,sans-serif;color:#17243d">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6fa;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:12px;border:1px solid #e1e6ef;overflow:hidden">
+        <tr><td style="background:#081d3a;padding:26px 32px;color:#ffffff">
+          <div style="font-size:25px;font-weight:700">Grevitywings</div>
+          <div style="margin-top:5px;color:#cad4e4;font-size:14px">Secure Client Delivery Portal</div>
+        </td></tr>
+        <tr><td style="padding:34px 32px">
+          <h1 style="margin:0 0 18px;font-size:24px;color:#17243d">Complete your portal access</h1>
+          <p style="margin:0 0 16px;line-height:1.65">A secure account setup or password recovery link was requested for your Grevitywings Client Delivery Portal account.</p>
+          <p style="margin:0 0 24px;line-height:1.65">Use the button below to create your password and continue to your organisation&apos;s workspace.</p>
+          <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}" style="display:inline-block;border-radius:8px;background:#7e3097;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 21px">Complete secure access</a>
+          <p style="margin:25px 0 0;color:#66758a;font-size:13px;line-height:1.6">This link is temporary and can only be used through Supabase&apos;s secure verification flow. If you did not expect this email, you can safely ignore it.</p>
+        </td></tr>
+        <tr><td style="border-top:1px solid #e1e6ef;padding:20px 32px;color:#66758a;font-size:12px;line-height:1.6">
+          Grevitywings<br>Secure Client Delivery Portal<br>www.grevitywings.com
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

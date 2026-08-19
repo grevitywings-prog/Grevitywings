@@ -77,8 +77,44 @@ test("invite flow has no recipient-controlled redirect and callback cannot activ
   assert.doesNotMatch(callback, /client_account_members|status: "active"/);
 });
 
+test("pending-member resend is tenant scoped and cannot change the stored role", async () => {
+  const resend = await readFile(new URL("../app/api/portal/team/[memberId]/resend-invite/route.ts", import.meta.url), "utf8");
+  assert.match(resend, /isSameOrigin/);
+  assert.match(resend, /requireClientApi/);
+  assert.match(resend, /canManageTeam/);
+  assert.match(resend, /\.eq\("client_account_id", auth\.context\.account\.id\)/);
+  assert.match(resend, /target\.status !== "invited"/);
+  assert.match(resend, /getUserById\(target\.auth_user_id\)/);
+  assert.match(resend, /authUser\.user\.email\?\.toLowerCase\(\) !== target\.email\.toLowerCase\(\)/);
+  assert.match(resend, /resetPasswordForEmail/);
+  assert.match(resend, /getPortalUrl\("\/portal\/invite-recovery"\)/);
+  assert.doesNotMatch(resend, /update\(\{[^}]*role|insert\(|deleteUser|signUp\s*\(/s);
+});
+
+test("recovered invitation activates only after authenticated password creation", async () => {
+  const completion = await readFile(new URL("../app/api/portal/auth/complete-invite-recovery/route.ts", import.meta.url), "utf8");
+  const verificationIndex = completion.indexOf("verifyOtp");
+  const passwordIndex = completion.indexOf("updateUser({ password })");
+  const activationIndex = completion.indexOf('.update({ status: "active", accepted_at: acceptedAt })');
+  assert.ok(verificationIndex >= 0 && passwordIndex > verificationIndex && activationIndex > passwordIndex);
+  assert.match(completion, /type: "recovery"/);
+  assert.match(completion, /member\.status !== "invited"/);
+  assert.match(completion, /account\.status !== "active"/);
+  assert.match(completion, /\.eq\("client_account_id", member\.client_account_id\)/);
+  assert.match(completion, /\.eq\("auth_user_id", verified\.user\.id\)/);
+  assert.match(completion, /\.eq\("status", "invited"\)/);
+  assert.doesNotMatch(completion, /update\(\{[^}]*role/s);
+  assert.match(completion, /metadata: \{ role: member\.role \}/);
+});
+
 test("hosted invitation template uses Supabase one-time variables", async () => {
   const template = await readFile(new URL("../supabase/templates/invite.html", import.meta.url), "utf8");
+  assert.match(template, /\{\{ \.RedirectTo \}\}\?token_hash=\{\{ \.TokenHash \}\}/);
+  assert.doesNotMatch(template, /localhost|127\.0\.0\.1/);
+});
+
+test("hosted recovery template uses one-time Supabase variables", async () => {
+  const template = await readFile(new URL("../supabase/templates/recovery.html", import.meta.url), "utf8");
   assert.match(template, /\{\{ \.RedirectTo \}\}\?token_hash=\{\{ \.TokenHash \}\}/);
   assert.doesNotMatch(template, /localhost|127\.0\.0\.1/);
 });

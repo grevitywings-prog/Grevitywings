@@ -10,6 +10,13 @@ async function updateTeam(method: "POST" | "PATCH", body: unknown) {
   return payload as { message?: string };
 }
 
+async function resendInvitation(memberId: string) {
+  const response = await fetch(`/api/portal/team/${encodeURIComponent(memberId)}/resend-invite`, { method: "POST" });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "The invitation could not be resent.");
+  return payload as { message?: string };
+}
+
 export function InviteMemberForm({ canInviteManager }: { canInviteManager: boolean }) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -41,11 +48,20 @@ export function MemberControls({ memberId, role, status, canAssignManager }: { m
     try { await updateTeam("PATCH", { memberId, ...body }); window.location.reload(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "Update failed."); setPending(false); }
   }
+  async function resend() {
+    setPending(true); setMessage("");
+    try {
+      const result = await resendInvitation(memberId);
+      setMessage(result.message || "Invitation resent securely.");
+      setPending(false);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Resend failed."); setPending(false); }
+  }
   return <div className="portal-member-controls">
     <select aria-label="Member role" value={role} disabled={pending} onChange={event => void patch({ role: event.target.value })}>
       <option value="viewer">Viewer</option><option value="contributor">Contributor</option>{canAssignManager && <option value="manager">Manager</option>}
     </select>
     <button className="portal-secondary-button" type="button" disabled={pending} onClick={() => void patch({ status: status === "disabled" ? "active" : "disabled" })}>{status === "disabled" ? "Restore" : "Disable"}</button>
+    {status === "invited" && <button className="portal-secondary-button" type="button" disabled={pending} onClick={() => void resend()}>{pending ? "Sending…" : "Resend invitation"}</button>}
     {message && <small role="status">{message}</small>}
   </div>;
 }

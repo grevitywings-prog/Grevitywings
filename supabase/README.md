@@ -19,6 +19,7 @@ Then complete these one-time steps:
 1. In **Authentication → URL Configuration**, set Site URL to `https://www.grevitywings.com` and add these exact Redirect URLs:
    - `https://www.grevitywings.com/portal/invite`
    - `https://www.grevitywings.com/portal/auth/callback?next=/portal/reset-password`
+   - `https://www.grevitywings.com/portal/invite-recovery`
 2. In **Authentication → Providers → Email**, keep email/password enabled and disable public sign-ups.
 3. Create the first administrator in **Authentication → Users**.
 4. Copy that user's UUID and run:
@@ -32,6 +33,7 @@ values ('AUTH_USER_UUID', 'Portal Administrator');
 6. Add the variables from `.env.example` to local development and to Vercel Production, Preview and Development environments. Set Vercel Production `NEXT_PUBLIC_SITE_URL` to `https://www.grevitywings.com`.
 7. In **Authentication → Emails → SMTP Settings**, configure Custom SMTP with sender name `Grevitywings Client Portal` and a verified Grevitywings sender such as `portal@grevitywings.com`.
 8. In **Authentication → Email Templates → Invite user**, set the subject to `You're invited to the Grevitywings Client Portal` and paste `supabase/templates/invite.html` as the template body. The template uses Supabase's one-time `TokenHash`; `/portal/invite` verifies it server-side only when the recipient submits a password.
+9. In **Authentication → Email Templates → Reset password**, set the subject to `Complete your Grevitywings portal access` and paste `supabase/templates/recovery.html` as the template body. The dedicated completion endpoint verifies Supabase's one-time recovery `TokenHash` server-side before allowing password creation and membership activation.
 
 Already-sent invitations containing an old or localhost redirect are not rewritten by configuration changes. Cancel and reissue those invitations after this application code, URL configuration and email template are active.
 
